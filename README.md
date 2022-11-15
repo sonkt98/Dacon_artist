@@ -1,7 +1,9 @@
 # 월간 데이콘 예술 작품 화가 분류 AI 경진대회
 
-**Team : booduck** <br>
-**Member : 김도윤(justist7), 김형석(KimHS0915), 박근태(sonkt98), 양윤석(flashult), 정선규(SSunQ)**
+**Public : <span style="color:red">2nd</span>**, **Private : <span style="color:red">2nd</span>**
+
+**Team** : booduck <br>
+**Member** : 김도윤(justist7), 김형석(KimHS0915), 박근태(sonkt98), 양윤석(flashult), 정선규(SSunQ)
 
 ## 폴더구조
 ```bash
