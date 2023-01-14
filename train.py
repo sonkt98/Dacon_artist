@@ -11,6 +11,7 @@ import warnings
 from dataset import get_dataset
 from utils import seed_everything, competition_metric, \
                 save_model, increment_path
+from augmentation import CutMixCollator, CutMixCriterion
 
 
 def train(model, optimizer, train_loader, test_loader, scheduler,
@@ -19,6 +20,9 @@ def train(model, optimizer, train_loader, test_loader, scheduler,
     model.to(device)
 
     criterion = nn.CrossEntropyLoss().to(device)
+    if args.use_cutmix:
+        criterion = CutMixCriterion(criterion)
+    val_criterion = nn.CrossEntropyLoss().to(device)
 
     best_score = 0
 
@@ -28,7 +32,14 @@ def train(model, optimizer, train_loader, test_loader, scheduler,
         train_loss = []
 
         for img, label in tqdm(iter(train_loader)):
-            img, label = img.float().to(device), label.to(device)
+
+            img = img.float().to(device)
+
+            if args.use_cutmix:
+                targets1, targets2, lam = label
+                label = (targets1.to(device), targets2.to(device), lam)
+            else:
+                label = label.to(device)
 
             optimizer.zero_grad()
 
@@ -43,7 +54,7 @@ def train(model, optimizer, train_loader, test_loader, scheduler,
 
         tr_loss = np.mean(train_loss)
 
-        val_loss, val_score = validation(model, criterion, test_loader, device)
+        val_loss, val_score = validation(model, val_criterion, test_loader, device)
 
         print(f'Epoch [{epoch}], Train Loss : [{tr_loss:.5f}] Val Loss : [{val_loss:.5f}] Val F1 Score : [{val_score:.5f}]')
 
@@ -93,6 +104,8 @@ def parse_arg():
     parser.add_argument('--lr', type=float, default=3e-4)
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--seed', type=int, default=41)
+    parser.add_argument('--use_cutmix', action='store_true')
+    parser.add_argument('--alpha', type=float, default=1.0)
     parser.add_argument('--name', type=str, default='exp', help='model save at {name}')
     args = parser.parse_args()
     return args
@@ -113,10 +126,12 @@ if __name__ == "__main__":
 
     num_workers = multiprocessing.cpu_count() // 2
 
+    collate_fn = CutMixCollator(alpha=args.alpha) if args.use_cutmix else None
+
     # Dataset
     train_dataset, val_dataset = get_dataset(args)
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size,
-                              shuffle=True, num_workers=num_workers)
+                              shuffle=True, num_workers=num_workers, collate_fn=collate_fn)
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size,
                             shuffle=False, num_workers=num_workers)
 
