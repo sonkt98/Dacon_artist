@@ -6,6 +6,7 @@ from albumentations.pytorch.transforms import ToTensorV2
 from sklearn import preprocessing
 from sklearn.model_selection import train_test_split
 from torch.utils.data import Dataset
+from importlib import import_module
 
 
 IMG_EXTENSIONS = [
@@ -66,30 +67,11 @@ def get_dataset(args):
     train_img_paths, train_labels = get_data(train_df)
     val_img_paths, val_labels = get_data(val_df)
 
-    train_transform = A.Compose([
-                        A.Resize(480, 480),
-                        A.RandomCrop(224, 224),
-                        A.HorizontalFlip(p=0.5),
-                        A.Normalize(
-                            mean=(0.485, 0.456, 0.406),
-                            std=(0.229, 0.224, 0.225),
-                            max_pixel_value=255.0,
-                            always_apply=False,
-                            p=1.0),
-                        ToTensorV2()
-                        ])
+    train_transform_module = getattr(import_module('augmentation'), args.augmentation)
+    train_transform = train_transform_module(args.resize, args.crop_size)
 
-    val_transform = A.Compose([
-                        A.Resize(480, 480),
-                        A.RandomCrop(224, 224),
-                        A.Normalize(
-                            mean=(0.485, 0.456, 0.406),
-                            std=(0.229, 0.224, 0.225),
-                            max_pixel_value=255.0,
-                            always_apply=False,
-                            p=1.0),
-                        ToTensorV2()
-                        ])
+    val_transform_module = getattr(import_module('augmentation'), 'BaseAugmentation')
+    val_transform = val_transform_module(args.resize, args.crop_size)
 
     train_dataset = CustomDataset(train_img_paths, train_labels, train_transform)
     val_dataset = CustomDataset(val_img_paths, val_labels, val_transform)
