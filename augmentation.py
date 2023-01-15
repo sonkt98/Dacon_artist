@@ -61,7 +61,7 @@ class AugmentationV3:
         return self.transform(image=np.array(image))
 
 
-def cutmix(batch, alpha):
+def cutmix(batch, alpha=1.0):
     data, targets = batch
     indices = torch.randperm(data.size(0))
     shuffled_data = data[indices]
@@ -84,21 +84,40 @@ def cutmix(batch, alpha):
     return data, targets
 
 
-class CutMixCollator:
-    def __init__(self, alpha):
+def mixup(batch, alpha=0.2):
+    data, targets = batch
+    indices = torch.randperm(data.size(0))
+
+    shuffled_data = data[indices]
+    shuffled_targets = targets[indices]
+    lam = np.random.beta(alpha, alpha)
+
+    data = lam * data + (1 - lam) * shuffled_data
+    targets = (targets, shuffled_targets, lam)
+
+    return data, targets
+
+
+class MixCollator:
+    def __init__(self, alpha, mode='cutmix'):
+        assert mode in ['cutmix', 'mixup']
         self.alpha = alpha
+        self.mode = mode
 
     def __call__(self, batch):
         batch = torch.utils.data.dataloader.default_collate(batch)
-        batch = cutmix(batch, self.alpha)
+        if self.mode == 'cutmix':
+            batch = cutmix(batch, self.alpha)
+        elif self.mode == 'mixup':
+            batch = mixup(batch, self.alpha)
         return batch
 
 
-class CutMixCriterion:
+class MixCriterion:
     def __init__(self, criterion):
         self.criterion = criterion
 
     def __call__(self, preds, targets):
         targets1, targets2, lam = targets
-        return lam * self.criterion(
-            preds, targets1) + (1 - lam) * self.criterion(preds, targets2)
+        return lam * self.criterion(preds, targets1) \
+            + (1 - lam) * self.criterion(preds, targets2)
