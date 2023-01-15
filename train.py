@@ -4,7 +4,6 @@ import multiprocessing
 from importlib import import_module
 import numpy as np
 import torch
-import torch.nn as nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import warnings
@@ -12,6 +11,7 @@ from dataset import get_dataset
 from utils import seed_everything, competition_metric, \
                 save_model, increment_path
 from augmentation import MixCollator, MixCriterion
+from loss import create_criterion
 
 
 def train(model, optimizer, train_loader, test_loader, scheduler,
@@ -19,10 +19,10 @@ def train(model, optimizer, train_loader, test_loader, scheduler,
 
     model.to(device)
 
-    criterion = nn.CrossEntropyLoss().to(device)
+    criterion = create_criterion(args.criterion).to(device)
     if args.use_cutmix or args.use_mixup:
         criterion = MixCriterion(criterion)
-    val_criterion = nn.CrossEntropyLoss().to(device)
+    val_criterion = create_criterion(args.criterion).to(device)
 
     best_score = 0
 
@@ -98,6 +98,7 @@ def parse_arg():
     parser.add_argument('--data_dir', type=str, default='data/')
     parser.add_argument('--model', type=str, default='BaseModel')
     parser.add_argument('--epochs', type=int, default=20)
+    parser.add_argument('--criterion', type=str, default='cross_entropy')
     parser.add_argument('--augmentation', type=str, default='BaseAugmentation')
     parser.add_argument('--resize', type=int, default=480)
     parser.add_argument('--crop_size', type=int, default=224)
