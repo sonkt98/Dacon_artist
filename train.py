@@ -67,6 +67,9 @@ def train(model, optimizer, train_loader, test_loader, scheduler,
             file_name = f'{args.model}_Epoch_{epoch}_F1_{best_score:.5f}'
             save_model(model, saved_dir, file_name)
 
+        if epoch == args.epochs:
+            save_model(model, saved_dir)
+
 
 def validation(model, criterion, test_loader, device):
     model.eval()

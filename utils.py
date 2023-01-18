@@ -27,10 +27,10 @@ def get_lr(optimizer):
         return param_group['lr']
 
 
-def save_model(model, saved_dir, file_name='model.pt'):
+def save_model(model, saved_dir, file_name='latest'):
     os.makedirs(saved_dir, exist_ok=True)
     output_path = os.path.join(saved_dir, file_name)
-    torch.save(model, output_path)
+    torch.save(model.state_dict(), output_path+'.pt')
 
 
 def increment_path(path, exist_ok=False):
