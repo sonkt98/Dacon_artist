@@ -12,6 +12,7 @@ from utils import seed_everything, competition_metric, \
                 save_model, increment_path
 from augmentation import MixCollator, MixCriterion
 from loss import create_criterion
+from scheduler import get_scheduler
 
 
 def train(model, optimizer, train_loader, test_loader, scheduler,
@@ -103,6 +104,7 @@ def parse_arg():
     parser.add_argument('--data_dir', type=str, default='data/')
     parser.add_argument('--model', type=str, default='BaseModel')
     parser.add_argument('--epochs', type=int, default=20)
+    parser.add_argument('--scheduler', type=str, default=None)
     parser.add_argument('--criterion', type=str, default='cross_entropy')
     parser.add_argument('--augmentation', type=str, default='BaseAugmentation')
     parser.add_argument('--resize', type=int, default=480)
@@ -157,6 +159,6 @@ if __name__ == "__main__":
     model = model_module(num_classes=50)
     model.eval()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
-    scheduler = None
+    scheduler = get_scheduler(args.scheduler, optimizer, args.epochs)
     train(model, optimizer, train_loader, val_loader, scheduler,
           device, saved_dir, args)
