@@ -1,8 +1,6 @@
 import os
 import cv2
 import pandas as pd
-import albumentations as A
-from albumentations.pytorch.transforms import ToTensorV2
 from sklearn import preprocessing
 from sklearn.model_selection import train_test_split
 from torch.utils.data import Dataset
@@ -57,22 +55,25 @@ def get_dataset(args):
     le = preprocessing.LabelEncoder()
     df['artist'] = le.fit_transform(df['artist'].values)
 
-    train_df, val_df, _, _ = train_test_split(df,
-                                              df['artist'].values,
-                                              test_size=0.2,
-                                              random_state=41)
+    if args.no_valid:
+        train_df = df
+        val_dataset = None
+
+    else:
+        train_df, val_df, _, _ = train_test_split(df,
+                                                  df['artist'].values,
+                                                  test_size=0.2,
+                                                  random_state=41)
+        val_df = val_df.sort_values(by=['id'])
+        val_img_paths, val_labels = get_data(val_df)
+        val_transform_module = getattr(import_module('augmentation'), 'BaseAugmentation')
+        val_transform = val_transform_module(args.resize, args.crop_size)
+        val_dataset = CustomDataset(val_img_paths, val_labels, val_transform)
+
     train_df = train_df.sort_values(by=['id'])
-    val_df = val_df.sort_values(by=['id'])
-
     train_img_paths, train_labels = get_data(train_df)
-    val_img_paths, val_labels = get_data(val_df)
-
     train_transform_module = getattr(import_module('augmentation'), args.augmentation)
     train_transform = train_transform_module(args.resize, args.crop_size)
-
-    val_transform_module = getattr(import_module('augmentation'), 'BaseAugmentation')
-    val_transform = val_transform_module(args.resize, args.crop_size)
-
     train_dataset = CustomDataset(train_img_paths, train_labels, train_transform)
-    val_dataset = CustomDataset(val_img_paths, val_labels, val_transform)
+
     return train_dataset, val_dataset

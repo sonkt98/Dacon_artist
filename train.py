@@ -22,7 +22,8 @@ def train(model, optimizer, train_loader, test_loader, scheduler,
     criterion = create_criterion(args.criterion).to(device)
     if args.use_cutmix or args.use_mixup:
         criterion = MixCriterion(criterion)
-    val_criterion = create_criterion(args.criterion).to(device)
+    if not args.no_valid:
+        val_criterion = create_criterion(args.criterion).to(device)
 
     best_score = 0
 
@@ -54,18 +55,19 @@ def train(model, optimizer, train_loader, test_loader, scheduler,
 
         tr_loss = np.mean(train_loss)
 
-        val_loss, val_score = validation(model, val_criterion, test_loader, device)
+        if args.no_valid:
+            print(f'Epoch [{epoch}], Train Loss : [{tr_loss:.5f}]')
+        else:
+            val_loss, val_score = validation(model, val_criterion, test_loader, device)
+            print(f'Epoch [{epoch}], Train Loss : [{tr_loss:.5f}] Val Loss : [{val_loss:.5f}] Val F1 Score : [{val_score:.5f}]')
 
-        print(f'Epoch [{epoch}], Train Loss : [{tr_loss:.5f}] Val Loss : [{val_loss:.5f}] Val F1 Score : [{val_score:.5f}]')
+            if best_score < val_score:
+                best_score = val_score
+                file_name = f'{args.model}_Epoch_{epoch}_F1_{best_score:.5f}'
+                save_model(model, saved_dir, file_name)
 
         if scheduler is not None:
             scheduler.step()
-
-        if best_score < val_score:
-            best_score = val_score
-
-            file_name = f'{args.model}_Epoch_{epoch}_F1_{best_score:.5f}'
-            save_model(model, saved_dir, file_name)
 
         if epoch == args.epochs:
             save_model(model, saved_dir)
@@ -112,6 +114,7 @@ def parse_arg():
     parser.add_argument('--use_mixup', action='store_true')
     parser.add_argument('--alpha', type=float, default=1.0)
     parser.add_argument('--name', type=str, default='exp', help='model save at {name}')
+    parser.add_argument('--no_valid', action='store_true')
     args = parser.parse_args()
     return args
 
@@ -143,8 +146,11 @@ if __name__ == "__main__":
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size,
                               shuffle=True, num_workers=num_workers,
                               collate_fn=collate_fn)
-    val_loader = DataLoader(val_dataset, batch_size=args.batch_size,
-                            shuffle=False, num_workers=num_workers)
+    if args.no_valid:
+        val_loader = None
+    else:
+        val_loader = DataLoader(val_dataset, batch_size=args.batch_size,
+                                shuffle=False, num_workers=num_workers)
 
     # Train model
     model_module = getattr(import_module("model"), args.model)
