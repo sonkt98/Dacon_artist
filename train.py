@@ -27,6 +27,7 @@ def train(model, optimizer, train_loader, test_loader, scheduler,
         val_criterion = create_criterion(args.criterion).to(device)
 
     best_score = 0
+    patience = args.early_stopping if args.early_stopping > 0 else 9999
 
     for epoch in range(1, args.epochs + 1):
 
@@ -66,6 +67,14 @@ def train(model, optimizer, train_loader, test_loader, scheduler,
                 best_score = val_score
                 file_name = f'{args.model}_Epoch_{epoch}_F1_{best_score:.5f}'
                 save_model(model, saved_dir, file_name)
+                if args.early_stopping > 0:
+                    patience = args.early_stopping
+            elif args.early_stopping > 0:
+                patience -= 1
+
+        if args.early_stopping > 0 and patience < 1:
+            print('Early stopping ...')
+            break
 
         if scheduler is not None:
             scheduler.step()
@@ -104,6 +113,7 @@ def parse_arg():
     parser.add_argument('--data_dir', type=str, default='data/')
     parser.add_argument('--model', type=str, default='BaseModel')
     parser.add_argument('--epochs', type=int, default=20)
+    parser.add_argument('--early_stopping', type=int, default=0)
     parser.add_argument('--optimizer', type=str, default='Adam')
     parser.add_argument('--scheduler', type=str, default=None)
     parser.add_argument('--criterion', type=str, default='cross_entropy')
