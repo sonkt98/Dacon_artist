@@ -8,11 +8,12 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 import warnings
 from dataset import get_dataset
-from utils import seed_everything, competition_metric, \
-                save_model, increment_path
+from utils import seed_everything, save_model, increment_path
 from augmentation import MixCollator, MixCriterion
 from loss import create_criterion
 from scheduler import get_scheduler
+from validation import validation
+from fold import train_kfold
 
 
 def train(model, optimizer, train_loader, test_loader, scheduler,
@@ -83,31 +84,6 @@ def train(model, optimizer, train_loader, test_loader, scheduler,
             save_model(model, saved_dir)
 
 
-def validation(model, criterion, test_loader, device):
-    model.eval()
-
-    model_preds = []
-    true_labels = []
-
-    val_loss = []
-
-    with torch.no_grad():
-        for img, label in tqdm(iter(test_loader)):
-            img, label = img.float().to(device), label.to(device)
-
-            model_pred = model(img)
-
-            loss = criterion(model_pred, label)
-
-            val_loss.append(loss.item())
-
-            model_preds += model_pred.argmax(1).detach().cpu().numpy().tolist()
-            true_labels += label.detach().cpu().numpy().tolist()
-
-    val_f1 = competition_metric(true_labels, model_preds)
-    return np.mean(val_loss), val_f1
-
-
 def parse_arg():
     parser = argparse.ArgumentParser(add_help=True)
     parser.add_argument('--data_dir', type=str, default='data/')
@@ -128,6 +104,10 @@ def parse_arg():
     parser.add_argument('--alpha', type=float, default=1.0)
     parser.add_argument('--name', type=str, default='exp', help='model save at {name}')
     parser.add_argument('--no_valid', action='store_true')
+    parser.add_argument('--kfold', action='store_true')
+    parser.add_argument('--stratified', action='store_true')
+    parser.add_argument('--n_splits', type=int, default=7)
+    parser.add_argument('--oof', action='store_true')
     args = parser.parse_args()
     return args
 
@@ -154,23 +134,26 @@ if __name__ == "__main__":
     else:
         collate_fn = None
 
-    # Dataset
-    train_dataset, val_dataset = get_dataset(args)
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size,
-                              shuffle=True, num_workers=num_workers,
-                              collate_fn=collate_fn)
-    if args.no_valid:
-        val_loader = None
+    if args.kfold:
+        train_kfold(device, saved_dir, num_workers, collate_fn, args)
     else:
-        val_loader = DataLoader(val_dataset, batch_size=args.batch_size,
-                                shuffle=False, num_workers=num_workers)
+        # Dataset
+        train_dataset, val_dataset = get_dataset(args)
+        train_loader = DataLoader(train_dataset, batch_size=args.batch_size,
+                                  shuffle=True, num_workers=num_workers,
+                                  collate_fn=collate_fn)
+        if args.no_valid:
+            val_loader = None
+        else:
+            val_loader = DataLoader(val_dataset, batch_size=args.batch_size,
+                                    shuffle=False, num_workers=num_workers)
 
-    # Train model
-    model_module = getattr(import_module("model"), args.model)
-    model = model_module(num_classes=50)
-    model.eval()
-    optimizer_module = getattr(import_module('torch.optim'), args.optimizer)
-    optimizer = optimizer_module(model.parameters(), lr=args.lr)
-    scheduler = get_scheduler(args.scheduler, optimizer, args.epochs)
-    train(model, optimizer, train_loader, val_loader, scheduler,
-          device, saved_dir, args)
+        # Train model
+        model_module = getattr(import_module("model"), args.model)
+        model = model_module(num_classes=50)
+        model.eval()
+        optimizer_module = getattr(import_module('torch.optim'), args.optimizer)
+        optimizer = optimizer_module(model.parameters(), lr=args.lr)
+        scheduler = get_scheduler(args.scheduler, optimizer, args.epochs)
+        train(model, optimizer, train_loader, val_loader, scheduler,
+              device, saved_dir, args)

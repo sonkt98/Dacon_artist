@@ -17,6 +17,18 @@ class BaseAugmentation:
         return self.transform(image=np.array(image))
 
 
+class TestAugmentation:
+    def __init__(self, resize, **args):
+        self.transform = A.Compose([
+            A.Resize(resize, resize),
+            A.Normalize(),
+            ToTensorV2(),
+        ])
+
+    def __call__(self, image):
+        return self.transform(image=np.array(image))
+
+
 class AugmentationV1:
     def __init__(self, resize, crop_size, **args):
         self.transform = A.Compose([
