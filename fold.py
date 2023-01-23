@@ -154,7 +154,12 @@ def train_kfold(device, saved_dir, num_workers, collate_fn, args):
 
                 images = images.float().to(device)
 
-                pred = best_model(images)
+                if args.tta:
+                    pred = best_model(images) / 2
+                    pred += best_model(torch.flip(images, dims=(-1,))) / 2
+                else:
+                    pred = best_model(images)
+
                 all_predictions.extend(pred.cpu().numpy())
 
             fold_pred = np.array(all_predictions)

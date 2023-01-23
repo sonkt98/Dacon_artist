@@ -104,10 +104,14 @@ def parse_arg():
     parser.add_argument('--alpha', type=float, default=1.0)
     parser.add_argument('--name', type=str, default='exp', help='model save at {name}')
     parser.add_argument('--no_valid', action='store_true')
+
+    # KFold arguments
     parser.add_argument('--kfold', action='store_true')
     parser.add_argument('--stratified', action='store_true')
     parser.add_argument('--n_splits', type=int, default=7)
+    parser.add_argument('--tta', action='store_true')
     parser.add_argument('--oof', action='store_true')
+
     args = parser.parse_args()
     return args
 

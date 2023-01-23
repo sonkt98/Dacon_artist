@@ -23,7 +23,11 @@ def inference(model, test_loader, device, mode):
     with torch.no_grad():
         for img in tqdm(iter(test_loader)):
             img = img.float().to(device)
-            model_pred = model(img)
+            if args.tta:
+                model_pred = model(img) / 2
+                model_pred += model(torch.flip(img, dims=(-1,))) / 2
+            else:
+                model_pred = model(img)
             if mode in ['logit', 'both']:
                 logits.extend(model_pred.detach().cpu().numpy().tolist())
             if mode in ['answer', 'both']:
@@ -40,6 +44,7 @@ def parse_arg():
     parser.add_argument('--output_dir', type=str, default='./output/submission/')
     parser.add_argument('--model_path', type=str, default='./output/model/exp/latest.pt')
     parser.add_argument('--mode', type=str, default='answer')
+    parser.add_argument('--tta', action='store_true')
     args = parser.parse_args()
     return args
 
