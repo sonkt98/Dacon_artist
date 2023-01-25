@@ -2,8 +2,7 @@ import math
 import torch.nn as nn
 import torchvision.models as models
 import timm
-from Cream.TinyViT.models.tiny_vit import tiny_vit_5m_224, tiny_vit_21m_224, \
-                                        tiny_vit_21m_384
+from models.tiny_vit import tiny_vit_5m_224, tiny_vit_21m_224, tiny_vit_21m_384
 
 
 class BaseModel(nn.Module):

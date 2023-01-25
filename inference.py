@@ -8,9 +8,7 @@ from torch.utils.data import DataLoader
 from sklearn import preprocessing
 from importlib import import_module
 from tqdm import tqdm
-from dataset import CustomDataset, get_data
-import albumentations as A
-from albumentations.pytorch.transforms import ToTensorV2
+from dataset.dataset import CustomDataset, get_data
 
 
 def inference(model, test_loader, device, mode):
@@ -62,7 +60,7 @@ if __name__ == "__main__":
 
     num_workers = multiprocessing.cpu_count() // 2
 
-    model_module = getattr(import_module("model"), args.model)
+    model_module = getattr(import_module("models.model"), args.model)
     model = model_module(num_classes=50)
     model.load_state_dict(torch.load(args.model_path))
 
@@ -72,11 +70,8 @@ if __name__ == "__main__":
     test_df['img_path'] = test_df['img_path'].apply(
         lambda x: os.path.join(args.data_dir, x[2:]))
     test_img_paths = get_data(test_df, infer=True)
-    test_transform = A.Compose([
-        A.Resize(args.img_size, args.img_size),
-        A.Normalize(),
-        ToTensorV2(),
-    ])
+    test_transform_module = getattr(import_module('dataset.augmentation'), 'TestAugmentation')
+    test_transform = test_transform_module(args.img_size)
     test_dataset = CustomDataset(test_img_paths, None, test_transform)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size,
                              shuffle=False, num_workers=num_workers)

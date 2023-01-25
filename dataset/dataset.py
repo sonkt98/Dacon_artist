@@ -66,13 +66,13 @@ def get_dataset(args):
                                                   random_state=41)
         val_df = val_df.sort_values(by=['id'])
         val_img_paths, val_labels = get_data(val_df)
-        val_transform_module = getattr(import_module('augmentation'), 'BaseAugmentation')
+        val_transform_module = getattr(import_module('dataset.augmentation'), 'BaseAugmentation')
         val_transform = val_transform_module(args.resize, args.crop_size)
         val_dataset = CustomDataset(val_img_paths, val_labels, val_transform)
 
     train_df = train_df.sort_values(by=['id'])
     train_img_paths, train_labels = get_data(train_df)
-    train_transform_module = getattr(import_module('augmentation'), args.augmentation)
+    train_transform_module = getattr(import_module('dataset.augmentation'), args.augmentation)
     train_transform = train_transform_module(args.resize, args.crop_size)
     train_dataset = CustomDataset(train_img_paths, train_labels, train_transform)
 

@@ -1,19 +1,19 @@
 import os
 import argparse
+import warnings
 import multiprocessing
-from importlib import import_module
 import numpy as np
+from importlib import import_module
 import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-import warnings
-from dataset import get_dataset
-from utils import seed_everything, save_model, increment_path
-from augmentation import MixCollator, MixCriterion
-from loss import create_criterion
-from scheduler import get_scheduler
-from validation import validation
-from fold import train_kfold
+from dataset.dataset import get_dataset
+from utils.collator import MixCollator
+from utils.criterion import create_criterion, MixCriterion
+from utils.fold import train_kfold
+from utils.metric import validation
+from utils.scheduler import get_scheduler
+from utils.util import seed_everything, save_model, increment_path
 
 
 def train(model, optimizer, train_loader, test_loader, scheduler,
@@ -22,7 +22,7 @@ def train(model, optimizer, train_loader, test_loader, scheduler,
     model.to(device)
 
     criterion = create_criterion(args.criterion).to(device)
-    if args.use_cutmix or args.use_mixup:
+    if args.cutmix or args.mixup:
         criterion = MixCriterion(criterion)
     if not args.no_valid:
         val_criterion = create_criterion(args.criterion).to(device)
@@ -39,7 +39,7 @@ def train(model, optimizer, train_loader, test_loader, scheduler,
 
             img = img.float().to(device)
 
-            if args.use_cutmix or args.use_mixup:
+            if args.cutmix or args.mixup:
                 targets1, targets2, lam = label
                 label = (targets1.to(device), targets2.to(device), lam)
             else:
@@ -99,8 +99,8 @@ def parse_arg():
     parser.add_argument('--lr', type=float, default=3e-4)
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--seed', type=int, default=41)
-    parser.add_argument('--use_cutmix', action='store_true')
-    parser.add_argument('--use_mixup', action='store_true')
+    parser.add_argument('--cutmix', action='store_true')
+    parser.add_argument('--mixup', action='store_true')
     parser.add_argument('--alpha', type=float, default=1.0)
     parser.add_argument('--name', type=str, default='exp', help='model save at {name}')
     parser.add_argument('--no_valid', action='store_true')
@@ -131,9 +131,9 @@ if __name__ == "__main__":
 
     num_workers = multiprocessing.cpu_count() // 2
 
-    if args.use_cutmix:
+    if args.cutmix:
         collate_fn = MixCollator(alpha=args.alpha, mode='cutmix')
-    elif args.use_mixup:
+    elif args.mixup:
         collate_fn = MixCollator(alpha=args.alpha, mode='mixup')
     else:
         collate_fn = None
@@ -153,7 +153,7 @@ if __name__ == "__main__":
                                     shuffle=False, num_workers=num_workers)
 
         # Train model
-        model_module = getattr(import_module("model"), args.model)
+        model_module = getattr(import_module("models.model"), args.model)
         model = model_module(num_classes=50)
         model.eval()
         optimizer_module = getattr(import_module('torch.optim'), args.optimizer)

@@ -7,12 +7,11 @@ from tqdm import tqdm
 from sklearn import preprocessing
 from sklearn.model_selection import KFold, StratifiedKFold
 from importlib import import_module
-from dataset import get_data, CustomDataset
-from augmentation import MixCriterion
-from loss import create_criterion
-from scheduler import get_scheduler
-from validation import validation
-from utils import save_model
+from dataset.dataset import get_data, CustomDataset
+from utils.criterion import create_criterion, MixCriterion
+from utils.scheduler import get_scheduler
+from utils.metric import validation
+from utils.util import save_model
 
 
 def getDataloader(train_dataset, val_dataset,
@@ -53,26 +52,21 @@ def train_kfold(device, saved_dir, num_workers, collate_fn, args):
     test_df['img_path'] = test_df['img_path'].apply(
         lambda x: os.path.join(args.data_dir, x[2:]))
     test_img_paths = get_data(test_df, infer=True)
-    test_transform_module = getattr(import_module('augmentation'), 'TestAugmentation')
+    test_transform_module = getattr(import_module('dataset.augmentation'), 'TestAugmentation')
     test_transform = test_transform_module(args.crop_size)
     test_dataset = CustomDataset(test_img_paths, None, test_transform)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size,
                              shuffle=False, num_workers=num_workers)
 
-    train_transform_module = getattr(import_module('augmentation'), args.augmentation)
-    train_transform = train_transform_module(args.resize, args.crop_size)
-    val_transform_module = getattr(import_module('augmentation'), 'BaseAugmentation')
-    val_transform = val_transform_module(args.resize, args.crop_size)
-
     criterion = create_criterion(args.criterion).to(device)
-    if args.use_cutmix or args.use_mixup:
+    if args.cutmix or args.mixup:
         criterion = MixCriterion(criterion)
     val_criterion = create_criterion(args.criterion).to(device)
 
-    train_transform_module = getattr(import_module('augmentation'), args.augmentation)
+    train_transform_module = getattr(import_module('dataset.augmentation'), args.augmentation)
     train_transform = train_transform_module(args.resize, args.crop_size)
     train_dataset = CustomDataset(all_img_paths, all_labels, train_transform)
-    val_transform_module = getattr(import_module('augmentation'), 'BaseAugmentation')
+    val_transform_module = getattr(import_module('dataset.augmentation'), 'BaseAugmentation')
     val_transform = val_transform_module(args.resize, args.crop_size)
     val_dataset = CustomDataset(all_img_paths, all_labels, val_transform)
 
@@ -87,7 +81,7 @@ def train_kfold(device, saved_dir, num_workers, collate_fn, args):
             args.batch_size, num_workers, collate_fn
         )
 
-        model_module = getattr(import_module("model"), args.model)
+        model_module = getattr(import_module("models.model"), args.model)
         model = model_module(num_classes=50)
         model.to(device)
 
@@ -108,7 +102,7 @@ def train_kfold(device, saved_dir, num_workers, collate_fn, args):
 
                 img = img.float().to(device)
 
-                if args.use_cutmix or args.use_mixup:
+                if args.cutmix or args.mixup:
                     targets1, targets2, lam = label
                     label = (targets1.to(device), targets2.to(device), lam)
                 else:
