@@ -63,13 +63,17 @@ def get_scheduler(scheduler_name, optimizer, max_epoch):
     if scheduler_name is None:
         return None
     if scheduler_name == 'StepLR':
-        scheduler = StepLR(optimizer, step_size=max_epoch // 2)
+        step_size = max_epoch // 2 if max_epoch > 1 else 1
+        scheduler = StepLR(optimizer, step_size=step_size)
     elif scheduler_name == 'MultiStepLR':
-        scheduler = MultiStepLR(optimizer, milestones=[max_epoch // 2, max_epoch // 4])
+        step_1 = max_epoch // 4 if max_epoch > 3 else 1
+        step_2 = max_epoch // 2 if max_epoch > 1 else 1
+        scheduler = MultiStepLR(optimizer, milestones=[step_1, step_2])
     elif scheduler_name == 'ExponentialLR':
         scheduler = ExponentialLR(optimizer, gamma=0.95)
     elif scheduler_name == 'CosineAnnealingWarmUpRestarts':
-        scheduler = CosineAnnealingWarmUpRestarts(optimizer, T_0=max_epoch // 5,
+        t_0 = max_epoch // 5 if max_epoch > 4 else 1
+        scheduler = CosineAnnealingWarmUpRestarts(optimizer, T_0=t_0,
                                                   T_mult=1, eta_max=0.001,
                                                   T_up=3, gamma=0.5)
     else:
