@@ -1,7 +1,7 @@
 # 월간 데이콘 예술 작품 화가 분류 AI 경진대회
 
-**Public : 0.88676, 2/215**  
-**Private : 0.88748, 2/215**
+**Public** : 0.88676, 2/215  
+**Private** : 0.88748, 2/215
 
 **Team** : booduck  
 **Member** : [김도윤(justist7)](https://github.com/justist7), [김형석(KimHS0915)](https://github.com/KimHS0915), [박근태(sonkt98)](https://github.com/sonkt98), [양윤석(flashult)](https://github.com/flashult), [정선규(SSunQ)](https://github.com/SSunQ)
@@ -37,7 +37,7 @@
 
 ## Install
 
-```bash
+```
 pip install -r requirements.txt
 ```
 
@@ -50,3 +50,9 @@ bash run.sh
 ```
 
 또는 notebooks의 skf_tta_cutmix, skf_tta_cutout, novalid_ep60_cutout 3가지 ipynb 파일을 실행시켜, 3가지 모델에 대한 test inference logit csv를 추출한 후 ensemble_soft.ipynb를 실행시켜 최종 ensemble output을 추출
+
+## Reference
+
+- [TinyViT: Fast Pretraining Distillation for Small Vision Transformers](https://arxiv.org/abs/2207.10666)
+- [Improved Regularization of Convolutional Neural Networks with Cutout](https://arxiv.org/abs/1708.04552)
+- [CutMix: Regularization Strategy to Train Strong Classifiers with Localizable Features](https://arxiv.org/abs/1905.04899)
